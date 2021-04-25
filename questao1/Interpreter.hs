@@ -15,6 +15,7 @@ execute context x = case x of
    SWhile exp stm -> if ( (eval context exp) /= 0) 
                       then execute (execute context stm) (SWhile exp stm)
                       else context
+   SdoWhile stm exp -> execute (execute context stm) (SWhile exp stm) -- Executa o bloco uma vez e depois trata como um while normal
    {- trate abaixo o caso de o comando "x" ser um comando "SdoWhile"
     dica: uma solucao mais curta tem 1 linha, e uma solucao mais "longa" tem menos de 5 linhas
    -}

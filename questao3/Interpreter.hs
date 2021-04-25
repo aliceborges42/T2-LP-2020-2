@@ -10,7 +10,7 @@ type ErrorMessage = String
    mas a sua definicao (corpo) pode ficar a mesma
    executeP :: RContext -> Program  -> Either ErrorMessage RContext
 -}
-executeP :: RContext -> Program  -> RContext
+executeP :: RContext -> Program  -> Either ErrorMessage RContext
 executeP context (Prog stm) = execute context stm
    
 
@@ -21,27 +21,55 @@ executeP context (Prog stm) = execute context stm
  e, consequentemente o execute tambem. Assim, todos tipos de comandos 
  serao afetados
 -}
-execute :: RContext -> Stm -> RContext
+--rafatoração para o caso de dar erro(divisão por 0)
+execute :: RContext -> Stm -> Either ErrorMessage RContext
 execute context x = case x of
-   SAss id exp -> update context (getStr id) (eval context exp)
-   SBlock [] -> context
-   SBlock (s:stms) -> execute (execute context s) (SBlock stms) 
-   SWhile exp stm -> if ( (eval context exp) /= 0) 
-                      then execute (execute context stm) (SWhile exp stm)
-                      else context
+   SAss id exp -> case (eval context exp) of
+                     Left error -> Left error
+                     Right i -> Right (update context (getStr id) i)
+   SBlock [] -> Right context
+   SBlock (s:stms) -> case (execute context s) of
+                        Left error -> Left error
+                        Right cont->  execute cont (SBlock stms) 
+   SWhile exp stm -> case (eval context exp) of
+                     Left error -> Left error
+                     Right i -> if ( i /= 0) 
+                                 then  case (execute context stm) of
+                                          Left error -> Left error
+                                          Right cont -> execute cont (SWhile exp stm)
+                                 else Right context
 
 
 {- Dica: o tipo de eval deve mudar para
  eval :: RContext -> Exp -> Either ErrorMessage Integer
 -}
-eval :: RContext -> Exp -> Integer
+-- Ao mudar o retorno implica na refatoração dos daemais casos, de forma a parar o programa repassando o erro(divisão por 0)
+eval :: RContext -> Exp -> Either ErrorMessage Integer
 eval context x = case x of
-    EAdd exp0 exp  -> eval context exp0 + eval context exp
-    ESub exp0 exp  -> eval context exp0 - eval context exp
-    EMul exp0 exp  -> eval context exp0 * eval context exp
-    EDiv exp0 exp  -> eval context exp0 `div` eval context exp
-    EInt n  -> n
-    EVar id  -> lookup context (getStr id)
+    EAdd exp0 exp  ->  case eval context exp0 of
+                     Left error -> Left error
+                     Right i -> case eval context exp of
+                                 Left error2 -> Left error2
+                                 Right i2 -> Right (i + i2)--eval context exp0 + eval context exp
+    ESub exp0 exp  ->  case eval context exp0 of
+                     Left error -> Left error
+                     Right i -> case eval context exp of
+                                 Left error2 -> Left error2
+                                 Right i2 -> Right (i - i2)--eval context exp0 - eval context exp
+    EMul exp0 exp  ->  case eval context exp0 of
+                     Left error -> Left error
+                     Right i -> case eval context exp of
+                                 Left error2 -> Left error2
+                                 Right i2 -> Right (i * i2)
+    EDiv exp0 exp  -> case eval context exp0 of
+                     Left error -> Left error
+                     Right i -> case eval context exp of
+                                 Left error2 -> Left error2
+                                 Right i2 -> if (i2 /= 0)
+                                             then Right (i `div` i2)
+                                             else Left "divisao por 0"
+    EInt n  -> Right n
+    EVar id  -> Right (lookup context (getStr id))
 {-  algumas dicas abaixo...para voce adaptar o codigo acima
     EDiv e1 e2 -> case eval context e1 of 
                     Right ve1 -> case eval context e2 of 

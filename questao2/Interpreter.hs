@@ -53,15 +53,17 @@ eval context x = case x of
     EInt n  -> ValorInt n
     EVar id  -> lookup context (getStr id)
     EStr str -> ValorStr str
+    --os casos abaixo tratam expressões booleanas do mesmo jeito(com adaptações de tipo) que as anteriores
     -- adicione abaixo um padrao e comportamento associado a expressao Or
-
+    EOr exp0 exp -> ValorBool ( b( eval context exp0) || b (eval context exp))
     -- adicione abaixo um padrao e comportamento associado a expressao And
-
+    EAnd exp0 exp -> ValorBool ( b(eval context exp0) && b(eval context exp))
     -- adicione abaixo um padrao e comportamento associado a expressao Not
-
+    ENot exp -> ValorBool(not (b(eval context exp)))
     -- adicione abaixo um padrao e comportamento associado ao literal true
-
+    ETrue -> ValorBool (True)
     -- adicione abaixo um padrao e comportamento associado ao literal false
+    EFalse -> ValorBool (False)
 
     
 type RContext = [(String,Valor)]
